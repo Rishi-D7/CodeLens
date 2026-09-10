@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 from typing import List, Optional
+from tempfile import TemporaryDirectory
+
+from git import GitCommandError, Repo
 
 from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
@@ -52,12 +55,38 @@ def index_repo(body: IndexRequest) -> IndexResponse:
 	if _engine is None:
 		raise HTTPException(status_code=503, detail="Search engine not initialized")
 
+	repo_path = body.repo_path.strip()
+	# If a GitHub HTTP(S) URL is provided, clone it into a temporary directory
+	if repo_path.startswith("https://github.com/") or repo_path.startswith("http://github.com/"):
+		try:
+			with TemporaryDirectory() as tmpdir:
+				try:
+					Repo.clone_from(repo_path, tmpdir)
+				except GitCommandError as exc:
+					# Could not clone — treat as a bad request with an explanatory message
+					raise HTTPException(status_code=400, detail=f"Failed to clone repository: {exc}")
+				# Build the index from the cloned repository directory
+				try:
+					_engine.build_from_repository(tmpdir)
+				except Exception as exc:
+					# Indexing failed after successful clone
+					raise HTTPException(status_code=500, detail=f"Indexing failed: {exc}")
+		except HTTPException:
+			# Re-raise known HTTP errors
+			raise
+		except Exception as exc:
+			# Unexpected failures (tempdir creation, permissions, etc.)
+			raise HTTPException(status_code=500, detail=f"Failed to prepare clone: {exc}")
+		# Return the original URL as the indexed repository identifier
+		return IndexResponse(status="ok", indexed_repository=repo_path)
+
+	# Otherwise treat `repo_path` as a local filesystem path and index in-place
 	try:
-		_engine.build_from_repository(body.repo_path)
+		_engine.build_from_repository(repo_path)
 	except Exception as exc:
 		raise HTTPException(status_code=500, detail=f"Indexing failed: {exc}")
 
-	return IndexResponse(status="ok", indexed_repository=body.repo_path)
+	return IndexResponse(status="ok", indexed_repository=repo_path)
 
 
 @app.get("/search", response_model=SearchResponse)
