@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import re
 from typing import Dict, List, Optional, Union
 
 import numpy as np
@@ -87,16 +88,29 @@ class CodeSearchEngine:
 		q_emb = self.embedder.encode([query])
 		q_emb = np.asarray(q_emb, dtype=np.float32)
 
-		k = min(top_k, len(self.doc_store))
+		# Retrieve extra candidates so a small file-type adjustment can reorder
+		# results without replacing semantic similarity as the main signal.
+		k = min(max(top_k * 3, top_k + 10), len(self.doc_store))
 		distances, indices = self.index.search(q_emb, k)
 
-		results: List[Dict[str, Union[str, float]]] = []
+		ranked_results: List[tuple[float, int, Dict[str, Union[str, float]]]] = []
 		for score, idx in zip(distances[0].tolist(), indices[0].tolist()):
 			if idx < 0:
 				continue
 			doc = dict(self.doc_store[idx])
 			doc["score"] = float(score)
-			results.append(doc)
+			file_path = str(doc.get("file", "")).replace("\\", "/").lower()
+			file_name = file_path.rsplit("/", 1)[-1]
+			path_parts = set(part for part in file_path.split("/") if part)
+			is_test_file = (
+				"test" in path_parts
+				or "tests" in path_parts
+				or bool(re.match(r"test_.*\.py$", file_name))
+				or bool(re.match(r".*_test\.py$", file_name))
+			)
+			adjusted_score = float(score) - (0.02 if is_test_file else 0.0)
+			ranked_results.append((adjusted_score, len(ranked_results), doc))
 
-		return results
+		ranked_results.sort(key=lambda item: (-item[0], item[1]))
+		return [doc for _, _, doc in ranked_results[:top_k]]
 
