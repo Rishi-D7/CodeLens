@@ -93,7 +93,8 @@ class CodeSearchEngine:
 		k = min(max(top_k * 3, top_k + 10), len(self.doc_store))
 		distances, indices = self.index.search(q_emb, k)
 
-		ranked_results: List[tuple[float, int, Dict[str, Union[str, float]]]] = []
+		non_test_results: List[Dict[str, Union[str, float]]] = []
+		test_results: List[Dict[str, Union[str, float]]] = []
 		for score, idx in zip(distances[0].tolist(), indices[0].tolist()):
 			if idx < 0:
 				continue
@@ -108,9 +109,14 @@ class CodeSearchEngine:
 				or bool(re.match(r"test_.*\.py$", file_name))
 				or bool(re.match(r".*_test\.py$", file_name))
 			)
-			adjusted_score = float(score) - (0.02 if is_test_file else 0.0)
-			ranked_results.append((adjusted_score, len(ranked_results), doc))
+			if is_test_file:
+				test_results.append(doc)
+			else:
+				non_test_results.append(doc)
 
-		ranked_results.sort(key=lambda item: (-item[0], item[1]))
-		return [doc for _, _, doc in ranked_results[:top_k]]
+		# Keep tests indexed, but deprioritize them so implementation code is easier to discover.
+		selected = non_test_results[:top_k]
+		if len(selected) < top_k:
+			selected.extend(test_results[:top_k - len(selected)])
+		return selected
 
