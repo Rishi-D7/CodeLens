@@ -1,0 +1,8 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.8.0+cpu
+fastapi
+uvicorn
+sentence-transformers
+faiss-cpu
+gitpython
+requests
