@@ -88,17 +88,21 @@ class CodeSearchEngine:
 		q_emb = self.embedder.encode([query])
 		q_emb = np.asarray(q_emb, dtype=np.float32)
 
-		# Retrieve extra candidates so a small file-type adjustment can reorder
-		# results without replacing semantic similarity as the main signal.
-		k = min(max(top_k * 3, top_k + 10), len(self.doc_store))
+		# Retrieve enough candidates for file diversification and test prioritization.
+		k = min(max(top_k * 5, top_k + 20), len(self.doc_store))
 		distances, indices = self.index.search(q_emb, k)
 
 		non_test_results: List[Dict[str, Union[str, float]]] = []
 		test_results: List[Dict[str, Union[str, float]]] = []
+		seen_files = set()
 		for score, idx in zip(distances[0].tolist(), indices[0].tolist()):
 			if idx < 0:
 				continue
 			doc = dict(self.doc_store[idx])
+			file_key = str(doc.get("file", ""))
+			if file_key in seen_files:
+				continue
+			seen_files.add(file_key)
 			doc["score"] = float(score)
 			file_path = str(doc.get("file", "")).replace("\\", "/").lower()
 			file_name = file_path.rsplit("/", 1)[-1]

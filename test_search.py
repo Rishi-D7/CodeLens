@@ -1,7 +1,43 @@
 from pathlib import Path
 
+import numpy as np
+
 from core.embeddings import EmbeddingModel
 from core.search import CodeSearchEngine
+
+
+class StubEmbeddingModel:
+    def encode(self, texts: list[str]) -> np.ndarray:
+        vectors = {
+            "best duplicate chunk": [1.0, 0.0],
+            "lower duplicate chunk": [0.95, 0.0],
+            "different file": [0.9, 0.0],
+            "another file": [0.8, 0.0],
+            "query": [1.0, 0.0],
+        }
+        return np.asarray([vectors[text] for text in texts], dtype=np.float32)
+
+
+def test_search_returns_one_best_chunk_per_file() -> None:
+    engine = CodeSearchEngine(StubEmbeddingModel())
+    engine.build_index(
+        [
+            {"file": "src/duplicate.py", "content": "best duplicate chunk", "start_line": 1, "end_line": 2},
+            {"file": "src/duplicate.py", "content": "lower duplicate chunk", "start_line": 81, "end_line": 82},
+            {"file": "src/different.py", "content": "different file", "start_line": 1, "end_line": 2},
+            {"file": "src/another.py", "content": "another file", "start_line": 1, "end_line": 2},
+        ]
+    )
+
+    results = engine.search("query", top_k=3)
+
+    assert [result["file"] for result in results] == [
+        "src/duplicate.py",
+        "src/different.py",
+        "src/another.py",
+    ]
+    assert results[0]["content"] == "best duplicate chunk"
+    assert results[0]["start_line"] == 1
 
 
 def main() -> None:
