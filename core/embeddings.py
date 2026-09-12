@@ -33,9 +33,14 @@ class EmbeddingModel:
 			A NumPy array of shape (len(texts), embedding_dim) containing
 			L2-normalized embeddings (dtype=float32).
 		"""
-		arr = self.model.encode(list(texts), convert_to_numpy=True, show_progress_bar=False)
+		arr = self.model.encode(
+			list(texts),
+			batch_size=4,
+			convert_to_numpy=True,
+			show_progress_bar=False,
+		)
 		# L2-normalize rows. Guard against zero norms.
 		norms = np.linalg.norm(arr, axis=1, keepdims=True)
 		norms[norms == 0] = 1.0
-		return arr / norms
+		return np.divide(arr, norms, out=arr)
 
