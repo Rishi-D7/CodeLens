@@ -24,7 +24,7 @@ EXAMPLE_QUERIES = (
 def index_repository(repo_path: str) -> dict[str, Any]:
 	"""Call the backend /index endpoint to index the given repository."""
 	url = f"{API_BASE}/index"
-	resp = requests.post(url, json={"repo_path": repo_path}, timeout=60)
+	resp = requests.post(url, json={"repo_path": repo_path}, timeout=300)
 	resp.raise_for_status()
 	return resp.json()
 
@@ -33,7 +33,7 @@ def search_query(q: str, top_k: int) -> dict[str, Any]:
 	"""Call the backend /search endpoint and return parsed JSON results."""
 	url = f"{API_BASE}/search"
 	params = {"q": q, "top_k": top_k}
-	resp = requests.get(url, params=params, timeout=60)
+	resp = requests.get(url, params=params, timeout=300)
 	resp.raise_for_status()
 	return resp.json()
 
