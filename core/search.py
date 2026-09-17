@@ -66,6 +66,8 @@ class CodeSearchEngine:
 		scanned = scan_repository(repo_path)
 		# chunk_documents returns list of dicts with file, content, start_line, end_line
 		chunks = chunk_documents(scanned)
+		if not chunks:
+			raise RuntimeError("No supported source files found in repository.")
 		# build the index from chunk documents
 		self.build_index(chunks)
 

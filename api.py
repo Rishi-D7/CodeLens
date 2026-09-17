@@ -68,6 +68,10 @@ def index_repo(body: IndexRequest) -> IndexResponse:
 				# Build the index from the cloned repository directory
 				try:
 					_engine.build_from_repository(tmpdir)
+				except RuntimeError as exc:
+					if str(exc) == "No supported source files found in repository.":
+						raise HTTPException(status_code=400, detail=str(exc))
+					raise
 				except Exception as exc:
 					# Indexing failed after successful clone
 					raise HTTPException(status_code=500, detail=f"Indexing failed: {exc}")
@@ -83,6 +87,10 @@ def index_repo(body: IndexRequest) -> IndexResponse:
 	# Otherwise treat `repo_path` as a local filesystem path and index in-place
 	try:
 		_engine.build_from_repository(repo_path)
+	except RuntimeError as exc:
+		if str(exc) == "No supported source files found in repository.":
+			raise HTTPException(status_code=400, detail=str(exc))
+		raise HTTPException(status_code=500, detail=f"Indexing failed: {exc}")
 	except Exception as exc:
 		raise HTTPException(status_code=500, detail=f"Indexing failed: {exc}")
 

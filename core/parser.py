@@ -28,9 +28,9 @@ def _read_file_text(path: Path) -> Optional[str]:
 def scan_repository(repo_path: Union[str, Path]) -> List[Dict[str, str]]:
 	"""Recursively scan a repository for source files and return their contents.
 
-	The scanner supports a limited set of file extensions (initially: .py, .js,
-	.ts, .java, .cpp, .c, .go). It ignores common build/virtualenv directories and
-	skips files larger than 500 KB. File-reading errors are handled gracefully by
+	The scanner supports common source, web, configuration, and documentation
+	file extensions. It ignores common build/virtualenv directories and skips
+	files larger than 500 KB. File-reading errors are handled gracefully by
 	skipping the problematic file.
 
 	Args:
@@ -44,7 +44,14 @@ def scan_repository(repo_path: Union[str, Path]) -> List[Dict[str, str]]:
 	if not root.exists():
 		return []
 
-	supported_exts = {".py", ".js", ".ts", ".java", ".cpp", ".c", ".go"}
+	supported_exts = {
+		".py", ".js", ".jsx", ".ts", ".tsx", ".java", ".c", ".h", ".cpp",
+		".hpp", ".cc", ".cxx", ".go", ".rs", ".rb", ".php", ".cs", ".swift",
+		".kt", ".kts", ".scala", ".sh", ".bash", ".sql", ".html", ".htm",
+		".css", ".scss", ".sass", ".vue", ".svelte", ".json", ".yaml", ".yml",
+		".toml", ".xml", ".md", ".txt",
+	}
+	supported_filenames = {".env.example"}
 	ignore_dirs = {".git", ".venv", "venv", "node_modules", "__pycache__", "dist", "build"}
 	max_size_bytes = 500 * 1024  # 500 KB
 
@@ -68,7 +75,7 @@ def scan_repository(repo_path: Union[str, Path]) -> List[Dict[str, str]]:
 						continue
 					_scan_dir(entry)
 				elif entry.is_file():
-					if entry.suffix.lower() not in supported_exts:
+					if entry.suffix.lower() not in supported_exts and entry.name.lower() not in supported_filenames:
 						continue
 					try:
 						size = entry.stat().st_size

@@ -90,9 +90,14 @@ A search result contains `file`, `start_line`, `end_line`, `score`, and `content
 
 ## Supported Source Languages
 
-The repository scanner currently includes files with these extensions:
+The repository scanner currently includes common source, web, configuration,
+and documentation files with these extensions:
 
-`.py` · `.js` · `.ts` · `.java` · `.cpp` · `.c` · `.go`
+`.py` · `.js` · `.jsx` · `.ts` · `.tsx` · `.java` · `.c` · `.h` · `.cpp` ·
+`.hpp` · `.cc` · `.cxx` · `.go` · `.rs` · `.rb` · `.php` · `.cs` · `.swift` ·
+`.kt` · `.kts` · `.scala` · `.sh` · `.bash` · `.sql` · `.html` · `.htm` ·
+`.css` · `.scss` · `.sass` · `.vue` · `.svelte` · `.json` · `.yaml` · `.yml` ·
+`.toml` · `.xml` · `.md` · `.txt` · `.env.example`
 
 ## Semantic Search vs. Ctrl+F
 
